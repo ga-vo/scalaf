@@ -1,4 +1,4 @@
-# scalaf - Introducción a la computación en paralelo
+# scalaf - Introducción a la computación paralela
 
 Use `./run.sh` to execute simulate scripts and show a plot of times vs number of threads
 
