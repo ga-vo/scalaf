@@ -6,7 +6,7 @@ EXECUTABLE = scalaf
 SOURCES = $(wildcard src/*.c)
 OBJECTS = $(patsubst $(SOURCEDIR)/%.c,$(BUILDDIR)/%.o, $(SOURCES))
 
-LDFLAGS = -lm
+LDFLAGS = -lm -lgomp -fopenmp
 
 all: dir $(BUILDDIR)/$(EXECUTABLE)
 

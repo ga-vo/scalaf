@@ -1,0 +1,75 @@
+1500
+Leyendo mapa de alturas del terreno...
+	- Terreno inicializado correctamente.
+Leyendo posición de los crátetes...
+	-Cráteres creados correctamente.
+Agregando filas y columnas extras en los bordes...
+Salir de la función agrandar...
+
+
+Paso de Tiempo 0: 
+
+
+
+Paso de Tiempo 2: 
+
+
+
+Paso de Tiempo 4: 
+
+
+
+Paso de Tiempo 6: 
+
+
+
+Paso de Tiempo 9: 
+
+
+
+Paso de Tiempo 7: 
+
+
+
+Paso de Tiempo 8: 
+
+Current working dir: /media/gavo/Local/Files/Documents/Academico/Computacion paralela/ejercicios/scalaf
+Current working dir: /media/gavo/Local/Files/Documents/Academico/Computacion paralela/ejercicios/scalaf
+Escribiendo archivo: /media/gavo/Local/Files/Documents/Academico/Computacion paralela/ejercicios/scalaf/1000x1000_EXP_7_0
+Guardando en archivo...
+Current working dir: /media/gavo/Local/Files/Documents/Academico/Computacion paralela/ejercicios/scalaf
+Current working dir: /media/gavo/Local/Files/Documents/Academico/Computacion paralela/ejercicios/scalaf
+Current working dir: /media/gavo/Local/Files/Documents/Academico/Computacion paralela/ejercicios/scalaf
+Current working dir: /media/gavo/Local/Files/Documents/Academico/Computacion paralela/ejercicios/scalaf
+
+
+Paso de Tiempo 3: 
+
+Current working dir: /media/gavo/Local/Files/Documents/Academico/Computacion paralela/ejercicios/scalaf
+
+
+Paso de Tiempo 5: 
+
+Current working dir: /media/gavo/Local/Files/Documents/Academico/Computacion paralela/ejercicios/scalaf
+Current working dir: /media/gavo/Local/Files/Documents/Academico/Computacion paralela/ejercicios/scalaf
+Escribiendo archivo: /media/gavo/Local/Files/Documents/Academico/Computacion paralela/ejercicios/scalaf/1000x1000_EXP_7_5
+Guardando en archivo...
+Se escribieron 1000000 elementos.
+
+Guardando archivo de encabezado /media/gavo/Local/Files/Documents/Academico/Computacion paralela/ejercicios/scalaf/1000x1000_EXP_7_0_enca 
+Ejecutando comando: gnuplot /media/gavo/Local/Files/Documents/Academico/Computacion\ paralela/ejercicios/scalaf/1000x1000_EXP_7_0_enca
+Se escribieron 1000000 elementos.
+
+Guardando archivo de encabezado /media/gavo/Local/Files/Documents/Academico/Computacion paralela/ejercicios/scalaf/1000x1000_EXP_7_5_enca 
+Ejecutando comando: gnuplot /media/gavo/Local/Files/Documents/Academico/Computacion\ paralela/ejercicios/scalaf/1000x1000_EXP_7_5_enca
+Mensaje del comando 0
+
+
+Paso de Tiempo 1: 
+
+Current working dir: /media/gavo/Local/Files/Documents/Academico/Computacion paralela/ejercicios/scalaf
+Mensaje del comando 0
+eliminando filas y columnas extras de la matriz...
+
+
+Time taken is is 4.506559

@@ -11,29 +11,42 @@ Código secuencial para la simulación de flujos de lava volcánica
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <omp.h>
+
+#define NUMBER_OF_TRHEADS 2
+
 // Función que calcula la viscosidad a partir de la temperatura,
 // tomada del artículo de Miyamoto y Sasaki
-double visc(double temperature) {
+double visc(double temperature)
+{
   return pow(10, (20.0 * (exp(-0.001835 * (temperature - 273.0)))));
 }
 
 // Función que calcula la tensión cortante a partir de la temperatura,
 // tomada del artículo de Miyamoto y Sasaki
-double yield(double temperature) {
+double yield(double temperature)
+{
   return pow(10, (11.67 - 0.0089 * (temperature - 273.0)));
 }
 
 // Función para colocar los cráteres en la matriz,
 // toma los datos de un punto en 2D y revisa que estén en el rango correcto.
 int placeCraters(mapCell *A, const point2D *P, int totalRows, int totalColumns,
-                 int totalCraters) {
+                 int totalCraters)
+{
 
   int craterColumn, craterRow;
-  for (int i = 0; i < totalCraters; ++i) {
+
+  // omp_set_num_threads(4);s
+  #pragma omp parallel for  
+  for (int i = 0; i < totalCraters; ++i)
+  {
     craterRow = P[i].x;
     craterColumn = P[i].y;
-    if ((craterRow > -1) && (craterRow < totalRows)) {
-      if ((craterColumn > -1) && (craterColumn < totalColumns)) {
+    if ((craterRow > -1) && (craterRow < totalRows))
+    {
+      if ((craterColumn > -1) && (craterColumn < totalColumns))
+      {
         A[craterRow * totalColumns + craterColumn].isVent = 1;
       }
     }
@@ -43,17 +56,20 @@ int placeCraters(mapCell *A, const point2D *P, int totalRows, int totalColumns,
 // Función para leer puntos en 2D desde un archivo de texto plano.
 // X para Filas, Y para Columnas.
 int readCratersPositionFile(char *path, int numberOfCraters,
-                            point2D *craterPositions) {
+                            point2D *craterPositions)
+{
   FILE *cratersPositionFile;
   char lineBuffer[1000];
   char *token;
   int error;
 
   printf("\nLeyendo posición de los crátetes...");
-  if (cratersPositionFile = fopen(path, "r")) {
+  if (cratersPositionFile = fopen(path, "r"))
+  {
     int i = 0;
     while ((fgets(lineBuffer, 1000, cratersPositionFile) != NULL) &&
-           (i < numberOfCraters)) {
+           (i < numberOfCraters))
+    {
       token = strtok(lineBuffer, ",");
       craterPositions[i].x = atol(token);
       token = strtok(NULL, ",");
@@ -63,8 +79,9 @@ int readCratersPositionFile(char *path, int numberOfCraters,
     printf("\n\t-Cráteres creados correctamente.");
     fclose(cratersPositionFile);
     return 1;
-
-  } else {
+  }
+  else
+  {
     printf("\nERROR: Archivo con posición de los cráteres no encontrado!");
     return 0;
   }
@@ -73,7 +90,8 @@ int readCratersPositionFile(char *path, int numberOfCraters,
 // Función para inicializar los valores en las celdas del terreno,
 // las altitudes del terreno se leen desde un archivo de texto plano
 // y los demás valores en la celda son asignados por defecto.
-int readTerrainFile(char *path, int maxRows, int maxColumns, mapCell *map) {
+int readTerrainFile(char *path, int maxRows, int maxColumns, mapCell *map)
+{
   FILE *mapAltitudesFile;
   char lineBuffer[8192];
   char *token;
@@ -81,16 +99,20 @@ int readTerrainFile(char *path, int maxRows, int maxColumns, mapCell *map) {
   int i, j;
   double altitudeValue;
 
-  if (mapAltitudesFile = fopen(path, "r")) {
+  if (mapAltitudesFile = fopen(path, "r"))
+  {
     printf("\nLeyendo mapa de alturas del terreno...");
     i = 0;
     // Lee una linea completa y convierte en token.
     // Inicializa todos los valores en cada celda.
-    while (fgets(lineBuffer, 1000, mapAltitudesFile) != NULL) {
+    while (fgets(lineBuffer, 1000, mapAltitudesFile) != NULL)
+    {
       j = 0;
       token = strtok(lineBuffer, ",");
-      while (token) {
-        if (j < maxColumns) {
+      while (token)
+      {
+        if (j < maxColumns)
+        {
           altitudeValue = atof(token);
           map[i * maxColumns + j].altitude = altitudeValue;
           map[i * maxColumns + j].thickness = 0;
@@ -103,14 +125,17 @@ int readTerrainFile(char *path, int maxRows, int maxColumns, mapCell *map) {
         }
         token = strtok(NULL, ",");
       }
-      if (j >= maxColumns) {
+      if (j >= maxColumns)
+      {
         i += 1;
       }
     }
     printf("\n\t- Terreno inicializado correctamente.");
     fclose(mapAltitudesFile);
     return 1;
-  } else {
+  }
+  else
+  {
     printf("\nERROR: Mapa de alturas no encontrado!");
     return 0;
   }
@@ -120,7 +145,8 @@ int readTerrainFile(char *path, int maxRows, int maxColumns, mapCell *map) {
  * columna al principio y al final (la matriz tiene dimensiones (MAX_ROWS
  * +2)*(MAX_COLS+2). De antemano me disculpo por la cantidad de veces que
  * imprimo la matriz. */
-void preFuncion(int filas, int columnas, const mapCell *A, mapCell *C) {
+void preFuncion(int filas, int columnas, const mapCell *A, mapCell *C)
+{
   int i, j, c, f;
   printf("\nAgregando filas y columnas extras en los bordes...\n");
   // cargar matriz a memoria
@@ -131,11 +157,15 @@ void preFuncion(int filas, int columnas, const mapCell *A, mapCell *C) {
   B = (mapCell *)malloc((filas + 2) * (columnas + 2) * sizeof(mapCell));
   // crear elementos para la matriz agrandada. B[filas+2][columnas+2];
   f = 0;
-  for (i = 0; i < filas + 2; ++i) {
-    if (!(i == 0 || i == (filas + 1))) {
+  for (i = 0; i < filas + 2; ++i)
+  {
+    if (!(i == 0 || i == (filas + 1)))
+    {
       c = 0;
-      for (j = 0; j < columnas + 2; ++j) {
-        if (!(j == 0 || j == (columnas + 1))) {
+      for (j = 0; j < columnas + 2; ++j)
+      {
+        if (!(j == 0 || j == (columnas + 1)))
+        {
           // acá van los valores no en los bordes
           B[(columnas + 2) * i + j].altitude = A[(columnas)*f + c].altitude;
           B[(columnas + 2) * i + j].thickness = A[(columnas)*f + c].thickness;
@@ -152,7 +182,9 @@ void preFuncion(int filas, int columnas, const mapCell *A, mapCell *C) {
           // llenar los valores originales
           // ya que acá se trate de los posiciones diferentes a los
           // nuevos bordes.
-        } else {
+        }
+        else
+        {
           // crear las filas y columnas extras
           // en la fila y columna 0, y en la fila y columna
           // filas y columnas, o sea los máximos.
@@ -172,8 +204,11 @@ void preFuncion(int filas, int columnas, const mapCell *A, mapCell *C) {
         }
       }
       f += 1;
-    } else {
-      for (j = 0; j < columnas + 2; ++j) {
+    }
+    else
+    {
+      for (j = 0; j < columnas + 2; ++j)
+      {
         // crear las filas y columnas extras
         // en la fila y columna 0, y en la fila y columna
         // filas y columnas, o sea los máximos.
@@ -206,7 +241,8 @@ void preFuncion(int filas, int columnas, const mapCell *A, mapCell *C) {
 /* La función postfunción "reduce" la matriz, eliminando una fila y una
 columna al principio y al final (la matriz tiene dimensiones (MAX_ROWS
 +2)*(MAX_COLS+2) y el resultado MAX_ROWS*MAX_COLS. */
-void postFuncion(int filas, int columnas, const mapCell *A, mapCell *C) {
+void postFuncion(int filas, int columnas, const mapCell *A, mapCell *C)
+{
   // veamos si entra a la funcion
   int i, j;
   printf("eliminando filas y columnas extras de la matriz...\n");
@@ -218,11 +254,16 @@ void postFuncion(int filas, int columnas, const mapCell *A, mapCell *C) {
   c = 0;
   f = 0;
   // reducir la matriz
-  for (i = 0; i < filas; i++) {
-    if (!(i == 0 || i >= (filas - 1))) {
+
+  for (i = 0; i < filas; i++)
+  {
+    if (!(i == 0 || i >= (filas - 1)))
+    {
       c = 0;
-      for (j = 0; j < columnas; j++) {
-        if (!(j == 0 || j >= (columnas - 1))) {
+      for (j = 0; j < columnas; j++)
+      {
+        if (!(j == 0 || j >= (columnas - 1)))
+        {
           B[f * n_columnas + c].altitude = A[i * columnas + j].altitude;
           B[f * n_columnas + c].thickness = A[i * columnas + j].thickness;
           B[f * n_columnas + c].temperature = A[i * columnas + j].temperature;
@@ -248,7 +289,8 @@ initialConditions c0;
 
 // Esta es la función donde se calcula todo.
 // en la versión CUDA es sustituida.
-void FuncionPrincipal(int filas, int columnas, mapCell *A, mapCell *C) {
+void FuncionPrincipal(int filas, int columnas, mapCell *A, mapCell *C)
+{
   // falta hacer una función visualizar que ignore las columnas extras
   // Asumimos al iniciar la función que la matriz ya viene aumentada.
   int i, j, l, m;
@@ -261,8 +303,13 @@ void FuncionPrincipal(int filas, int columnas, mapCell *A, mapCell *C) {
   double cArea = c0.cellWidth * c0.cellWidth;
   double alfa = 0.0;
   // primer ciclo que es solo para inicializar
-  for (i = 1; i < filas - 1; i++) {
-    for (j = 1; j < columnas - 1; j++) {
+
+#pragma omp parallel for  
+  for (i = 1; i < filas - 1; i++)
+  {
+// #pragma omp parallel for num_threads(4)
+    for (j = 1; j < columnas - 1; j++)
+    {
       // primero calcular la viscosidad y el yield, e inicializar los flujos
       A[i * columnas + j].viscosity = visc(A[i * columnas + j].temperature);
       A[i * columnas + j].yield = yield(A[i * columnas + j].temperature);
@@ -272,15 +319,22 @@ void FuncionPrincipal(int filas, int columnas, mapCell *A, mapCell *C) {
       A[i * columnas + j].exits = 0;
     }
   }
-  // ciclo para evaluar la cantidad de salidas que tiene cada celda
-  for (i = 1; i < filas - 1; i++) {
-    for (j = 1; j < columnas - 1; j++) {
+// ciclo para evaluar la cantidad de salidas que tiene cada celda
+#pragma omp parallel for  
+  for (i = 1; i < filas - 1; i++)
+  {
+// #pragma omp parallel for num_threads(4)
+    for (j = 1; j < columnas - 1; j++)
+    {
       Href = A[i * (columnas) + j].thickness;
       Aref = A[i * (columnas) + j].altitude;
       flujos = 0;
-      for (l = -1; l < 2; l++) {
-        for (m = -1; m < 2; m++) {
-          if (!(m == 0 && l == 0)) {
+      for (l = -1; l < 2; l++)
+      {
+        for (m = -1; m < 2; m++)
+        {
+          if (!(m == 0 && l == 0))
+          {
             int ni = i + l;
             int nj = j + m;
             Acomp = A[(ni) * (columnas) + (nj)].altitude;
@@ -291,12 +345,14 @@ void FuncionPrincipal(int filas, int columnas, mapCell *A, mapCell *C) {
                       sqrt((Acomp - Aref) * (Acomp - Aref) +
                            c0.cellWidth * c0.cellWidth)) /
                      (density * gravity * ((Acomp - Aref) - (Hcomp - Href))));
-            if ((Hcomp > Hcrit) && (Hcrit > 1e-8)) {
+            if ((Hcomp > Hcrit) && (Hcrit > 1e-8))
+            {
               // mas depuración
               // como esta operacion se repite es mejor hacerla una sola vez
               // calcular el valor del volumen que sale
               if (fabs(Hcomp + Acomp) >
-                  fabs(Href + Aref)) { // aca ya asumi que es plano
+                  fabs(Href + Aref))
+              { // aca ya asumi que es plano
                 A[ni * (columnas) + nj].exits += 1;
               }
             }
@@ -310,10 +366,14 @@ void FuncionPrincipal(int filas, int columnas, mapCell *A, mapCell *C) {
   // los supuestos de los autómatas celulares es que los estados solo se
   // actualizan al final, se necesita un segundo ciclo.  Esto es crucial para el
   // mapeo.
-  for (i = 1; i < filas - 1; i++) {
-    for (j = 1; j < columnas - 1; j++) {
+  
+  for (i = 1; i < filas - 1; i++)
+  {
+    for (j = 1; j < columnas - 1; j++)
+    {
       double deltaQ_flu_vent = 0.0;
-      if (A[i * columnas + j].isVent == 1) {
+      if (A[i * columnas + j].isVent == 1)
+      {
         // variables temporales para almacenar el delta de volumen y de
         // temperatura. si hay un crater se aumenta el thickness en un valor
         // igual a la tasa de erupción sobre el area de la celda por el delta de
@@ -348,9 +408,13 @@ void FuncionPrincipal(int filas, int columnas, mapCell *A, mapCell *C) {
       // calculo los flujos como tal, vamos a calcular directamente, sin
       // provisión de orden en los flujos, agregar el deltaV correcto. y el
       // correspondiente deltaQ
-      for (l = -1; l < 2; l++) {
-        for (m = -1; m < 2; m++) {
-          if (!(m == 0 && l == 0)) {
+
+      for (l = -1; l < 2; l++)
+      {
+        for (m = -1; m < 2; m++)
+        {
+          if (!(m == 0 && l == 0))
+          {
             int ni = i + l;
             int nj = j + m;
             Acomp = A[(ni) * (columnas) + (nj)].altitude;
@@ -381,13 +445,15 @@ void FuncionPrincipal(int filas, int columnas, mapCell *A, mapCell *C) {
             // es %lf, salidas de la celda de comp %d, celda %d,%d", Hcomp,
             // Href, c0.anchoCelda, Hcrit, A[ni*(columnas)+nj].exits, ni-1,
             // nj-1);
-            if ((Hcomp > Hcrit) && (Hcrit > 1e-8)) {
+            if ((Hcomp > Hcrit) && (Hcrit > 1e-8))
+            {
               // mas depuración
               // como esta operacion se repite es mejor hacerla una sola vez
               double h_hc = Hcomp / Hcrit;
               // calcular el valor del volumen que sale
               if ((fabs(Hcomp + Acomp) > fabs(Href + Aref)) &&
-                  (A[ni * (columnas) + nj].exits > 0)) {
+                  (A[ni * (columnas) + nj].exits > 0))
+              {
 
                 // aca ya asumi que es plano
                 // deltaV =
@@ -400,11 +466,14 @@ void FuncionPrincipal(int filas, int columnas, mapCell *A, mapCell *C) {
                          (h_hc * h_hc * h_hc - 1.5 * h_hc * h_hc + 0.5) *
                          (c0.deltat);
                 maxV = (deltaH * cArea) / (2 * A[ni * (columnas) + nj].exits);
-                if (maxV < deltaV) {
+                if (maxV < deltaV)
+                {
                   // luz, fuego, destrucción
                   deltaV = maxV;
                 }
-              } else {
+              }
+              else
+              {
                 deltaV = 0.0;
               }
               // printf("\nEl valor de dv que sale de %d,%d es
@@ -437,8 +506,12 @@ void FuncionPrincipal(int filas, int columnas, mapCell *A, mapCell *C) {
   // y temperaturas.
   // luego agregamos crateres y calculamos la temperatura perdida por radiacion
 
-  for (i = 1; i < filas - 1; i++) {
-    for (j = 1; j < columnas - 1; j++) {
+#pragma omp parallel for  
+  for (i = 1; i < filas - 1; i++)
+  {
+
+    for (j = 1; j < columnas - 1; j++)
+    {
       deltaT = 0.0;
       deltaQ = 0.0;
       deltaQ_rad = 0.0;
@@ -454,7 +527,8 @@ void FuncionPrincipal(int filas, int columnas, mapCell *A, mapCell *C) {
       Q_base = thickness_0 * temperature_0 * density * heatCapacity;
       // Cuando el grosor el negligible con relación al area, no hay perdida de
       // calor if (A[i*columnas+j].thickness > 1e-8) {
-      if (A[i * columnas + j].thickness > 1e-4) {
+      if (A[i * columnas + j].thickness > 1e-4)
+      {
         // A[i*columnas+j].temperature = (A[i*columnas+j].inboundQ +
         // (thickness_0 * cArea *
         // A[i*columnas+j].temperature))/(A[i*columnas+j].thickness * cArea);
@@ -462,7 +536,9 @@ void FuncionPrincipal(int filas, int columnas, mapCell *A, mapCell *C) {
             (-1.0) * SBConst * (cArea)*emisivity * c0.deltat *
             (A[i * columnas + j].temperature * A[i * columnas + j].temperature *
              A[i * columnas + j].temperature * A[i * columnas + j].temperature);
-      } else {
+      }
+      else
+      {
         deltaQ_rad = 0;
       }
       A[i * columnas + j].thickness = thickness_0 +
@@ -486,11 +562,14 @@ void FuncionPrincipal(int filas, int columnas, mapCell *A, mapCell *C) {
       // un nuevo grosor.
       // se revisa si en la celda hay un crater
       deltaQ = Q_base + deltaQ_flu + deltaQ_rad;
-      if (A[i * columnas + j].thickness > 1e-8) {
+      if (A[i * columnas + j].thickness > 1e-8)
+      {
         A[i * columnas + j].temperature =
             deltaQ /
             (density * heatCapacity * cArea * A[i * columnas + j].thickness);
-      } else {
+      }
+      else
+      {
         A[i * columnas + j].temperature = 273.0;
       }
       // printf("\nPara Celda %d,%d despues de crateres el valor de grosor es
@@ -517,7 +596,8 @@ void FuncionPrincipal(int filas, int columnas, mapCell *A, mapCell *C) {
 int prepararVisualizacionGNUPlot(int secuencia, char *path, int filas,
                                  int columnas, mapCell *matriz,
                                  int cifrasSignif, double w, double x0,
-                                 double y0) {
+                                 double y0)
+{
   // Esta función genera los dos archivos necesarios para producir una imagen
   // en GNU plot.  Los archivos son:
   // 1. datafile.dat (o variantes) que contiene los datos de altitud,
@@ -540,19 +620,23 @@ int prepararVisualizacionGNUPlot(int secuencia, char *path, int filas,
   long int cont;
   char newpath[500], tsec[20], pathenca[550], command[700], f_path[1024];
   // printf("\nNumero de caracteres de la ruta del archivo %d\n",(int)sizep);
-  if (sizep != 0) {
+  if (sizep != 0)
+  {
     strcpy(newpath, path);
     sprintf(tsec, "%d", secuencia);
     strcat(newpath, tsec);
     printf("Escribiendo archivo: %s\n", newpath);
     datosAltitud = fopen(newpath, "w");
-    if (datosAltitud != NULL) {
+    if (datosAltitud != NULL)
+    {
       printf("Guardando en archivo...\n");
       // Escribiendo los datos
       cont = 0;
-      for (j = 0; j < columnas; ++j) { // aca debo cambiar esto, altitude +
-                                       // thickness da la altura, osea la z
-        for (i = 0; i < filas; ++i) {
+      for (j = 0; j < columnas; ++j)
+      { // aca debo cambiar esto, altitude +
+        // thickness da la altura, osea la z
+        for (i = 0; i < filas; ++i)
+        {
           xcoord = x0 + i * w;
           ycoord = y0 + j * w;
           zcoord = matriz[columnas * i + j].thickness +
@@ -567,14 +651,17 @@ int prepararVisualizacionGNUPlot(int secuencia, char *path, int filas,
       }
       printf("Se escribieron %ld elementos.\n\n", cont);
       fclose(datosAltitud);
-    } else {
+    }
+    else
+    {
       printf("***\nError al intentar escribir el archivo de datos.\n***\n\n");
     }
     strcpy(pathenca, newpath);
     strcat(pathenca, "_enca");
     printf("Guardando archivo de encabezado %s \n", pathenca);
     encabezado = fopen(pathenca, "w");
-    if (encabezado != NULL) {
+    if (encabezado != NULL)
+    {
       // escribiendo el encabezado, pero en GNUPLOT es diferente
       // se muestran opciones para png y eps
       // fprintf(encabezado,"set terminal png size 400,300 enhanced font
@@ -605,7 +692,9 @@ int prepararVisualizacionGNUPlot(int secuencia, char *path, int filas,
       fprintf(encabezado, "splot \"%s\" using 1:2:3:4 with pm3d\n", newpath);
       fprintf(encabezado, "reset\n");
       fclose(encabezado);
-    } else {
+    }
+    else
+    {
       printf(
           "\n***\nError al intentar escribir el archivo de ecabezado.\n***\n");
     }
@@ -624,7 +713,8 @@ int prepararVisualizacionGNUPlot(int secuencia, char *path, int filas,
 int prepararVisualizacionGNUPlot_2(int secuencia, char *path, int filas,
                                    int columnas, mapCell *matriz,
                                    int cifrasSignif, double w, double x0,
-                                   double y0) {
+                                   double y0)
+{
   // Esta función genera los dos archivos necesarios para producir una imagen
   // en GNU plot.  Los archivos son:
   // 1. datafile.dat (o variantes) que contiene los datos de altitud,
@@ -647,19 +737,23 @@ int prepararVisualizacionGNUPlot_2(int secuencia, char *path, int filas,
   long int cont;
   char newpath[500], tsec[20], pathenca[550], command[700], f_path[1024];
   // printf("\nNumero de caracteres de la ruta del archivo %d\n",(int)sizep);
-  if (sizep != 0) {
+  if (sizep != 0)
+  {
     strcpy(newpath, path);
     sprintf(tsec, "%d", secuencia);
     strcat(newpath, tsec);
     printf("Escribiendo archivo: %s\n", newpath);
     datosAltitud = fopen(newpath, "w");
-    if (datosAltitud != NULL) {
+    if (datosAltitud != NULL)
+    {
       printf("Guardando en archivo...\n");
       // Escribiendo los datos
       cont = 0;
-      for (j = 1; j < columnas - 1; ++j) { // aca debo cambiar esto, altitude +
-                                           // thickness da la altura, osea la z
-        for (i = 1; i < filas - 1; ++i) {
+      for (j = 1; j < columnas - 1; ++j)
+      { // aca debo cambiar esto, altitude +
+        // thickness da la altura, osea la z
+        for (i = 1; i < filas - 1; ++i)
+        {
           xcoord = x0 + (i - 1) * w;
           ycoord = y0 + (j - 1) * w;
           zcoord = matriz[columnas * i + j].thickness +
@@ -674,14 +768,17 @@ int prepararVisualizacionGNUPlot_2(int secuencia, char *path, int filas,
       }
       printf("Se escribieron %ld elementos.\n\n", cont);
       fclose(datosAltitud);
-    } else {
+    }
+    else
+    {
       printf("***\nError al intentar escribir el archivo de datos.\n***\n\n");
     }
     strcpy(pathenca, newpath);
     strcat(pathenca, "_enca");
     printf("Guardando archivo de encabezado %s \n", pathenca);
     encabezado = fopen(pathenca, "w");
-    if (encabezado != NULL) {
+    if (encabezado != NULL)
+    {
       // escribiendo el encabezado, pero en GNUPLOT es diferente
       // se muestran opciones para png y eps
       // fprintf(encabezado,"set terminal png size 400,300 enhanced font
@@ -712,7 +809,9 @@ int prepararVisualizacionGNUPlot_2(int secuencia, char *path, int filas,
       fprintf(encabezado, "splot \"%s\" using 1:2:3:4 with pm3d\n", newpath);
       fprintf(encabezado, "reset\n");
       fclose(encabezado);
-    } else {
+    }
+    else
+    {
       printf(
           "\n***\nError al intentar escribir el archivo de ecabezado.\n***\n");
     }
@@ -730,13 +829,17 @@ int prepararVisualizacionGNUPlot_2(int secuencia, char *path, int filas,
  * Función para obtener el path actual, y de esta manera generar
  * las imagenes en el directorio actual.
  */
-int obtenerPath(char path[]) {
+int obtenerPath(char path[])
+{
   char cwd[1024];
-  if (getcwd(cwd, sizeof(cwd)) != NULL) {
+  if (getcwd(cwd, sizeof(cwd)) != NULL)
+  {
     fprintf(stdout, "Current working dir: %s\n", cwd);
     strcpy(path, cwd);
     return 0;
-  } else {
+  }
+  else
+  {
     perror("getcwd() error");
     return 1;
   }
@@ -744,19 +847,25 @@ int obtenerPath(char path[]) {
 
 // función para colocar \ donde sean necesarios y de esta manera
 // poder usar paths y nombres de archivos con espacios.
-int limpiarPath(char path[], char spath[]) {
+int limpiarPath(char path[], char spath[])
+{
   char r_path[1024], f_path[1024];
   int i, j;
   int lg = 0;
   strcpy(r_path, path);
   lg = strlen(r_path);
   j = 0;
-  for (i = 0; i < lg; ++i) {
-    if (r_path[i] == ' ') {
+#pragma omp parallel for  
+  for (i = 0; i < lg; ++i)
+  {
+    if (r_path[i] == ' ')
+    {
       f_path[j] = '\\';
       f_path[j + 1] = ' ';
       j += 2;
-    } else {
+    }
+    else
+    {
       f_path[j] = r_path[i];
       j += 1;
     }
@@ -765,7 +874,8 @@ int limpiarPath(char path[], char spath[]) {
   strcpy(spath, f_path);
 }
 
-int generarAnimacionGNUPlot(char nombreArchivo[], int secuencia) {
+int generarAnimacionGNUPlot(char nombreArchivo[], int secuencia)
+{
   /* ----------------------------------------------------------
    * En construcción.
    * "mencoder mf://*.%s -mf w=1366:h=720:fps=5:type=png -ovc copy -oac copy -o
@@ -775,7 +885,12 @@ int generarAnimacionGNUPlot(char nombreArchivo[], int secuencia) {
 }
 
 // Acá va la función main.
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
+
+  double itime, ftime, exec_time;
+  itime = omp_get_wtime();
+
   int i, flag = 0;
   mapCell *testPoint, *resultPoint, *resultCalc, *resultPoint2;
   point2D *crateres;
@@ -789,8 +904,10 @@ int main(int argc, char *argv[]) {
 
   int option;
 
-  while ((option = getopt(argc, argv, "t:v:w:s:a:r:c:p:e:n:")) != -1) {
-    switch (option) {
+  while ((option = getopt(argc, argv, "t:v:w:s:a:r:c:p:e:n:")) != -1)
+  {
+    switch (option) 
+    {
     case 't':
       // Temperatura de erupción
       c0.eruptionTemperature = atof(optarg);
@@ -854,15 +971,19 @@ int main(int argc, char *argv[]) {
       (mapCell *)malloc(c0.maxRows * c0.maxColumns * sizeof(mapCell));
 
   // Leer el mapa de alturas
-  if (readTerrainFile(a_path, c0.maxRows, c0.maxColumns, testPoint)) {
+  if (readTerrainFile(a_path, c0.maxRows, c0.maxColumns, testPoint))
+  {
     // Crear puntero a todos los cráteres y leer archivo de posición de estos.
     crateres = (point2D *)malloc(puntosCrater * sizeof(point2D));
-    if (readCratersPositionFile(s_path, puntosCrater, crateres)) {
+    if (readCratersPositionFile(s_path, puntosCrater, crateres))
+    {
       placeCraters(testPoint, crateres, c0.maxRows, c0.maxColumns,
                    puntosCrater);
       preFuncion(c0.maxRows, c0.maxColumns, testPoint, resultPoint);
 
-      for (i = 0; i < c0.timeSteps; i++) {
+      #pragma omp parallel for  
+      for (i = 0; i < c0.timeSteps; i++)
+      {
         printf("\n\nPaso de Tiempo %d: \n\n", i);
         FuncionPrincipal(c0.maxRows + 2, c0.maxColumns + 2, resultPoint,
                          resultCalc);
@@ -871,13 +992,17 @@ int main(int argc, char *argv[]) {
         strcat(path, etiqueta);
         strcat(path, "_");
         // poner el path
-        if (!(flag)) {
-          if (i % 5 == 0) {
+        if (!(flag))
+        {
+          if (i % 5 == 0)
+          {
             prepararVisualizacionGNUPlot_2(i, path, c0.maxRows + 2,
                                            c0.maxColumns + 2, resultCalc, 3,
                                            c0.cellWidth, 0, 0);
           }
-        } else {
+        }
+        else
+        {
           printf("Problemas con el path\n");
         }
         memcpy(resultPoint, resultCalc,
@@ -893,5 +1018,10 @@ int main(int argc, char *argv[]) {
   // place-holder de la funcion de escribir gnuplot
   // flag = prepararVisualizacionGNUPlot(1, "/home/sergio/salida1", MAX_ROWS,
   // MAX_COLS, test, 3, 1, 0, 0); printf("%d",flag); fin del programa
+
+  ftime = omp_get_wtime();
+  exec_time = ftime - itime;
+  printf("\n\nTime taken is is %f", exec_time, "\n");
+
   return 0;
 }
